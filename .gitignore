@@ -1,0 +1,31 @@
+# MATLAB Autosave & Temporary Files
+*.asv
+*.m~
+*.autosave
+*.bak
+
+# Compiled Binaries & MEX files (each OS must compile its own)
+*.mexw64
+*.mexa64
+*.mexmaci64
+*.mexmaca64
+*.o
+*.obj
+*.exp
+*.lib
+
+# Code Generation & Simulink Caches
+slprj/
+codegen/
+*.slxc
+*.sdi
+
+# Local Simulation Outputs (do not commit massive waveform dumps)
+results/*
+!results/.gitkeep
+*.mat
+!tests/golden_reference/*.mat
+
+# OS Junk
+.DS_Store
+Thumbs.db

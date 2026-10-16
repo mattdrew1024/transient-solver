@@ -1,0 +1,14 @@
+# Normalize text files across Windows/Linux/macOS
+*.m text eol=lf
+*.c text eol=lf
+*.cpp text eol=lf
+*.h text eol=lf
+*.sp text eol=lf
+*.cir text eol=lf
+
+# Strictly treat MATLAB binary formats as binary (no line-ending conversion, no text diff)
+*.mat binary
+*.mlx binary
+*.slx binary
+*.mlapp binary
+*.p binary
