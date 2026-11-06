@@ -1,0 +1,4 @@
+Designator,ComponentID,Name,Role,Assessment,PositiveNode,NegativeNode,Value
+C1,B0001,Capacitor,PASSIVE,LINEAR,n1,0,Capacitance=1e-6 F
+R1,B0004,Resistor,PASSIVE,LINEAR,n2,n1,Resistance=1 Ohm
+V1,B0006,Voltage Source,SOURCE,SOURCE,n2,0,DC voltage=0 V; AC voltage peak amplitude=0 V; AC voltage frequency=60 Hz

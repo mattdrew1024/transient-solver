@@ -1,0 +1,2 @@
+Severity,Code,ComponentID,Message,Location
+INFO,MULTIPLE_REFERENCES,,"2 Electrical Reference blocks found. Every Electrical Reference is the same 0 V node, so all of them are reported as node 0.",

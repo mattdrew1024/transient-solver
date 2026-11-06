@@ -1,0 +1,5 @@
+NetID,Kind,NodeID,IsGround,ComponentPortCount,Members
+N001,Physical,n1,0,2,C1.+; R1.-
+N002,Physical,0,1,2,C1.-; GND1.ground
+N003,Physical,0,1,2,GND2.ground; V1.-
+N004,Physical,n2,0,3,R1.+; SC1.RConn1; V1.+

@@ -1,0 +1,193 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<MATLABApp schemaVersion='1.0.0' release='R2026b.0' minRelease='R2026b'>
+    <UIFigure name='UIFigure'>
+        <AutoResizeChildren>'off'</AutoResizeChildren>
+        <Name>'Circuit Inspector'</Name>
+        <Position>[100 100 1150 720]</Position>
+        <Children>
+            <GridLayout name='MainGrid'>
+                <ColumnWidth>{'1x'}</ColumnWidth>
+                <RowHeight>{'fit', 'fit', '1x', 150}</RowHeight>
+                <RowSpacing>8</RowSpacing>
+                <Children>
+                    <GridLayout name='ToolbarGrid'>
+                        <ColumnSpacing>8</ColumnSpacing>
+                        <ColumnWidth>{'fit', 'fit', 'fit', '1x'}</ColumnWidth>
+                        <Layout>
+                            <Column>1</Column>
+                            <Row>1</Row>
+                        </Layout>
+                        <Padding>[0 0 0 0]</Padding>
+                        <RowHeight>{'fit'}</RowHeight>
+                        <Children>
+                            <Button name='SelectModelButton'>
+                                <ButtonPushedFcn>SelectModelButtonPushed</ButtonPushedFcn>
+                                <Layout>
+                                    <Column>1</Column>
+                                    <Row>1</Row>
+                                </Layout>
+                                <Text>'1. Select Model'</Text>
+                            </Button>
+                            <Button name='InspectButton'>
+                                <ButtonPushedFcn>InspectButtonPushed</ButtonPushedFcn>
+                                <Enable>'off'</Enable>
+                                <Layout>
+                                    <Column>2</Column>
+                                    <Row>1</Row>
+                                </Layout>
+                                <Text>'2. Inspect'</Text>
+                            </Button>
+                            <Button name='ExportButton'>
+                                <ButtonPushedFcn>ExportButtonPushed</ButtonPushedFcn>
+                                <Enable>'off'</Enable>
+                                <Layout>
+                                    <Column>3</Column>
+                                    <Row>1</Row>
+                                </Layout>
+                                <Text>'3. Export CSVs'</Text>
+                            </Button>
+                            <Label name='ModelPathLabel'>
+                                <Layout>
+                                    <Column>4</Column>
+                                    <Row>1</Row>
+                                </Layout>
+                                <Text>'No model selected.'</Text>
+                            </Label>
+                        </Children>
+                    </GridLayout>
+                    <Label name='ClassificationLabel'>
+                        <FontSize>14</FontSize>
+                        <FontWeight>'bold'</FontWeight>
+                        <Layout>
+                            <Column>1</Column>
+                            <Row>2</Row>
+                        </Layout>
+                        <Text>'Result: not inspected yet'</Text>
+                    </Label>
+                    <TabGroup name='ResultsTabGroup'>
+                        <Layout>
+                            <Column>1</Column>
+                            <Row>3</Row>
+                        </Layout>
+                        <Children>
+                            <Tab name='ComponentsTab'>
+                                <AutoResizeChildren>'off'</AutoResizeChildren>
+                                <Title>'Components'</Title>
+                                <Children>
+                                    <GridLayout name='ComponentsGrid'>
+                                        <ColumnWidth>{'1x'}</ColumnWidth>
+                                        <Padding>[4 4 4 4]</Padding>
+                                        <RowHeight>{'1x'}</RowHeight>
+                                        <Children>
+                                            <Table name='ComponentsTable'>
+                                                <Layout>
+                                                    <Column>1</Column>
+                                                    <Row>1</Row>
+                                                </Layout>
+                                            </Table>
+                                        </Children>
+                                    </GridLayout>
+                                </Children>
+                            </Tab>
+                            <Tab name='PortsTab'>
+                                <AutoResizeChildren>'off'</AutoResizeChildren>
+                                <Title>'Ports'</Title>
+                                <Children>
+                                    <GridLayout name='PortsGrid'>
+                                        <ColumnWidth>{'1x'}</ColumnWidth>
+                                        <Padding>[4 4 4 4]</Padding>
+                                        <RowHeight>{'1x'}</RowHeight>
+                                        <Children>
+                                            <Table name='PortsTable'>
+                                                <Layout>
+                                                    <Column>1</Column>
+                                                    <Row>1</Row>
+                                                </Layout>
+                                            </Table>
+                                        </Children>
+                                    </GridLayout>
+                                </Children>
+                            </Tab>
+                            <Tab name='NetsTab'>
+                                <AutoResizeChildren>'off'</AutoResizeChildren>
+                                <Title>'Nets'</Title>
+                                <Children>
+                                    <GridLayout name='NetsGrid'>
+                                        <ColumnWidth>{'1x'}</ColumnWidth>
+                                        <Padding>[4 4 4 4]</Padding>
+                                        <RowHeight>{'1x'}</RowHeight>
+                                        <Children>
+                                            <Table name='NetsTable'>
+                                                <Layout>
+                                                    <Column>1</Column>
+                                                    <Row>1</Row>
+                                                </Layout>
+                                            </Table>
+                                        </Children>
+                                    </GridLayout>
+                                </Children>
+                            </Tab>
+                            <Tab name='NetlistTab'>
+                                <AutoResizeChildren>'off'</AutoResizeChildren>
+                                <Title>'Netlist'</Title>
+                                <Children>
+                                    <GridLayout name='NetlistGrid'>
+                                        <ColumnWidth>{'1x'}</ColumnWidth>
+                                        <Padding>[4 4 4 4]</Padding>
+                                        <RowHeight>{'1x'}</RowHeight>
+                                        <Children>
+                                            <Table name='NetlistTable'>
+                                                <Layout>
+                                                    <Column>1</Column>
+                                                    <Row>1</Row>
+                                                </Layout>
+                                            </Table>
+                                        </Children>
+                                    </GridLayout>
+                                </Children>
+                            </Tab>
+                            <Tab name='WarningsTab'>
+                                <AutoResizeChildren>'off'</AutoResizeChildren>
+                                <Title>'Warnings'</Title>
+                                <Children>
+                                    <GridLayout name='WarningsGrid'>
+                                        <ColumnWidth>{'1x'}</ColumnWidth>
+                                        <Padding>[4 4 4 4]</Padding>
+                                        <RowHeight>{'1x'}</RowHeight>
+                                        <Children>
+                                            <Table name='WarningsTable'>
+                                                <Layout>
+                                                    <Column>1</Column>
+                                                    <Row>1</Row>
+                                                </Layout>
+                                            </Table>
+                                        </Children>
+                                    </GridLayout>
+                                </Children>
+                            </Tab>
+                        </Children>
+                    </TabGroup>
+                    <TextArea name='MessagesTextArea'>
+                        <Editable>'off'</Editable>
+                        <Layout>
+                            <Column>1</Column>
+                            <Row>4</Row>
+                        </Layout>
+                    </TextArea>
+                </Children>
+            </GridLayout>
+        </Children>
+    </UIFigure>
+    <RunConfiguration>
+        <StartupFcn>startupFcn</StartupFcn>
+    </RunConfiguration>
+    <AppDetails>
+        <Name>Circuit Inspector</Name>
+        <Version>1.0</Version>
+    </AppDetails>
+    <InternalData>
+        <AppId>839a2ffd-ef78-4d11-9a8f-912fb39e470e</AppId>
+    </InternalData>
+    <!-- Thumbnail is used by file previewers. To change how the thumbnail is captured or stored, use the App Details dialog box in App Designer. -->
+    <Thumbnail autoCapture='true'>data:image/jpg;base64,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</Thumbnail>
+</MATLABApp>

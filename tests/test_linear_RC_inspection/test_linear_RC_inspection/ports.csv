@@ -1,0 +1,10 @@
+PortID,ComponentID,Designator,BlockPath,PortGroup,PortIndex,Terminal,TerminalSource,X,Y,Connected,NetID,NodeID
+P00001,B0001,C1,test_linear_RC/Capacitor,LConn,1,+,library rule,220,160,1,N001,n1
+P00002,B0001,C1,test_linear_RC/Capacitor,RConn,1,-,library rule,290,160,1,N002,0
+P00003,B0002,GND1,test_linear_RC/Electrical Reference,LConn,1,ground,library rule,295,155,1,N002,0
+P00004,B0003,GND2,test_linear_RC/Electrical Reference1,LConn,1,ground,library rule,155,230,1,N003,0
+P00005,B0004,R1,test_linear_RC/Resistor,LConn,1,+,library rule,150,160,1,N004,n2
+P00006,B0004,R1,test_linear_RC/Resistor,RConn,1,-,library rule,220,160,1,N001,n1
+P00007,B0005,SC1,test_linear_RC/Solver Configuration,RConn,1,,,140,135,1,N004,n2
+P00008,B0006,V1,test_linear_RC/Voltage Source,LConn,1,+,library rule,155,175,1,N004,n2
+P00009,B0006,V1,test_linear_RC/Voltage Source,RConn,1,-,library rule,155,245,1,N003,0

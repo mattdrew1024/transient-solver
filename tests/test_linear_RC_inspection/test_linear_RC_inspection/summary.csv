@@ -1,0 +1,2 @@
+Model,File,Classification,Explanation,BlockCount,CircuitBlockCount,PortCount,NetCount,ElectricalNodeCount,NetworkCount,WarningCount,InspectedAt,MATLABRelease
+test_linear_RC,C:\Users\Gab\transient-solver\tests\test_linear_RC.slx,LINEAR_CANDIDATE,All 2 circuit element(s) are recognized linear elements in their current configuration; 1 source(s) are treated as external forcing. This assumes fixed parameter values and no active faults.,6,6,9,4,3,1,1,2026-11-06 10:22:28,2026b

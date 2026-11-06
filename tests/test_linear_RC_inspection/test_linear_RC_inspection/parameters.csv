@@ -1,0 +1,183 @@
+ComponentID,Designator,Parameter,Prompt,Value,Unit
+B0001,C1,cap_option,"Capacitance model","ee.enum.passive.capacitor.capOption.const",1
+B0001,C1,cap_option_conf,"cap_option_conf","compiletime",
+B0001,C1,c,"Capacitance","1e-6",F
+B0001,C1,c_conf,"c_conf","compiletime",
+B0001,C1,Cvec,"Capacitance values","[1e-05, 1e-06]",F
+B0001,C1,Cvec_conf,"Cvec_conf","compiletime",
+B0001,C1,Vvec,"Corresponding voltage values","[0, 10]",V
+B0001,C1,Vvec_conf,"Vvec_conf","compiletime",
+B0001,C1,CV_table_symmetry,"Symmetric C-V table","ee.enum.passive.capacitor.tableSymmetry.yes",1
+B0001,C1,CV_table_symmetry_conf,"CV_table_symmetry_conf","compiletime",
+B0001,C1,f_vec,"Frequencies for specifying dissipation factors [f1 f2]","[1, 10]",kHz
+B0001,C1,f_vec_conf,"f_vec_conf","compiletime",
+B0001,C1,DFext_vec,"Dissipation factors (%) at f1 and f2 [DF1 DF2]","[.8, 1.2]",1
+B0001,C1,DFext_vec_conf,"DFext_vec_conf","compiletime",
+B0001,C1,enable_C_tol,"Tolerance application","ee.enum.toleranceApplication.none",1
+B0001,C1,enable_C_tol_conf,"enable_C_tol_conf","compiletime",
+B0001,C1,averaging_period,"Averaging period for power logging","0",s
+B0001,C1,averaging_period_conf,"averaging_period_conf","compiletime",
+B0001,C1,C_tol,"Capacitance tolerance (%)","5",1
+B0001,C1,C_tol_conf,"C_tol_conf","compiletime",
+B0001,C1,tol_distribution,"Tolerance distribution","ee.enum.toleranceDistribution.uniform",1
+B0001,C1,tol_distribution_conf,"tol_distribution_conf","compiletime",
+B0001,C1,nSigma,"Number of standard deviations for quoted tolerance","4",1
+B0001,C1,nSigma_conf,"nSigma_conf","compiletime",
+B0001,C1,r,"Series resistance","0",Ohm
+B0001,C1,r_conf,"r_conf","compiletime",
+B0001,C1,g,"Parallel conductance","0",1/Ohm
+B0001,C1,g_conf,"g_conf","compiletime",
+B0001,C1,enable_operating_limits,"Enable operating limits","ee.enum.enable.no",1
+B0001,C1,enable_operating_limits_conf,"enable_operating_limits_conf","compiletime",
+B0001,C1,operating_limit_action,"Reporting if operating limits exceeded","ee.enum.passive.reportOpLim.warn",1
+B0001,C1,operating_limit_action_conf,"operating_limit_action_conf","compiletime",
+B0001,C1,max_working_voltage_range,"Working voltage range","[-25, 25]",V
+B0001,C1,max_working_voltage_range_conf,"max_working_voltage_range_conf","compiletime",
+B0001,C1,power_rating,"Power rating","1",W
+B0001,C1,power_rating_conf,"power_rating_conf","compiletime",
+B0001,C1,maxTemperature,"Temperature","85",degC
+B0001,C1,maxTemperature_conf,"maxTemperature_conf","compiletime",
+B0001,C1,thermalEnable,"Model thermal port","false",1
+B0001,C1,thermalEnable_conf,"thermalEnable_conf","compiletime",
+B0001,C1,thermalMass,"Thermal mass","1",J/K
+B0001,C1,thermalMass_conf,"thermalMass_conf","compiletime",
+B0001,C1,i_specify,"i_specify","off",
+B0001,C1,i_priority,"i_priority","None",
+B0001,C1,i,"i","0",A
+B0001,C1,i_nominal_specify,"i_nominal_specify","off",
+B0001,C1,i_nominal_value,"i_nominal_value","1",
+B0001,C1,i_nominal_unit,"i_nominal_unit","A",
+B0001,C1,v_specify,"v_specify","off",
+B0001,C1,v_priority,"v_priority","None",
+B0001,C1,v,"v","0",V
+B0001,C1,v_nominal_specify,"v_nominal_specify","off",
+B0001,C1,v_nominal_value,"v_nominal_value","1",
+B0001,C1,v_nominal_unit,"v_nominal_unit","V",
+B0001,C1,vc_specify,"vc_specify","off",
+B0001,C1,vc_priority,"vc_priority","High",
+B0001,C1,vc,"vc","0",V
+B0001,C1,vc_nominal_specify,"vc_nominal_specify","off",
+B0001,C1,vc_nominal_value,"vc_nominal_value","1",
+B0001,C1,vc_nominal_unit,"vc_nominal_unit","V",
+B0001,C1,T_specify,"T_specify","off",
+B0001,C1,T_priority,"T_priority","None",
+B0001,C1,T,"T","298.15",K
+B0001,C1,T_nominal_specify,"T_nominal_specify","off",
+B0001,C1,T_nominal_value,"T_nominal_value","1",
+B0001,C1,T_nominal_unit,"T_nominal_unit","K",
+B0004,R1,R,"Resistance","1",Ohm
+B0004,R1,R_conf,"R_conf","compiletime",
+B0004,R1,enable_R_tol,"Tolerance application","ee.enum.toleranceApplication.none",1
+B0004,R1,enable_R_tol_conf,"enable_R_tol_conf","compiletime",
+B0004,R1,R_tol,"Tolerance (%)","5",1
+B0004,R1,R_tol_conf,"R_tol_conf","compiletime",
+B0004,R1,tol_distribution,"Tolerance distribution","ee.enum.toleranceDistribution.uniform",1
+B0004,R1,tol_distribution_conf,"tol_distribution_conf","compiletime",
+B0004,R1,nSigma,"Number of standard deviations for quoted tolerance","4",1
+B0004,R1,nSigma_conf,"nSigma_conf","compiletime",
+B0004,R1,enable_operating_limits,"Enable operating limits","ee.enum.enable.no",1
+B0004,R1,enable_operating_limits_conf,"enable_operating_limits_conf","compiletime",
+B0004,R1,operating_limit_action,"Reporting if operating limits exceeded","ee.enum.passive.reportOpLim.warn",1
+B0004,R1,operating_limit_action_conf,"operating_limit_action_conf","compiletime",
+B0004,R1,power_rating,"Power rating","1",W
+B0004,R1,power_rating_conf,"power_rating_conf","compiletime",
+B0004,R1,max_working_voltage,"Maximum working voltage","100",V
+B0004,R1,max_working_voltage_conf,"max_working_voltage_conf","compiletime",
+B0004,R1,noise_mode,"Noise mode","ee.enum.sources.noise.Disabled",1
+B0004,R1,noise_mode_conf,"noise_mode_conf","compiletime",
+B0004,R1,Tdevice,"Device simulation temperature","25",degC
+B0004,R1,Tdevice_conf,"Tdevice_conf","compiletime",
+B0004,R1,sample_time,"Sample time","1e-3",s
+B0004,R1,sample_time_conf,"sample_time_conf","compiletime",
+B0004,R1,repeatability,"Repeatability","ee.enum.ic.repeatability.notRepeatable",1
+B0004,R1,repeatability_conf,"repeatability_conf","compiletime",
+B0004,R1,user_seed,"Seed","0",1
+B0004,R1,user_seed_conf,"user_seed_conf","compiletime",
+B0004,R1,auto_seed,"Auto-generated seed used for repeatable option","3890346746",1
+B0004,R1,auto_seed_conf,"auto_seed_conf","compiletime",
+B0004,R1,power_derating_T1,"Temperature below which full power rating is available","70",degC
+B0004,R1,power_derating_T1_conf,"power_derating_T1_conf","compiletime",
+B0004,R1,power_derating_T2,"Temperature above which power rating is reduced to zero","155",degC
+B0004,R1,power_derating_T2_conf,"power_derating_T2_conf","compiletime",
+B0004,R1,operating_temperature_range_vec,"Operating temperature range, [Tmin Tmax]","[-50, 150]",degC
+B0004,R1,operating_temperature_range_vec_conf,"operating_temperature_range_vec_conf","compiletime",
+B0004,R1,alpha,"Resistance temperature coefficient","3.93e-3",1/K
+B0004,R1,alpha_conf,"alpha_conf","compiletime",
+B0004,R1,Tmeas,"Measurement temperature","25",degC
+B0004,R1,Tmeas_conf,"Tmeas_conf","compiletime",
+B0004,R1,thermal_mass,"Thermal mass","100",J/K
+B0004,R1,thermal_mass_conf,"thermal_mass_conf","compiletime",
+B0004,R1,temperature_specify,"temperature_specify","off",
+B0004,R1,temperature_priority,"temperature_priority","High",
+B0004,R1,temperature,"temperature","298.15",K
+B0004,R1,temperature_nominal_specify,"temperature_nominal_specify","off",
+B0004,R1,temperature_nominal_value,"temperature_nominal_value","1",
+B0004,R1,temperature_nominal_unit,"temperature_nominal_unit","K",
+B0005,SC1,PhysicalDomain,"PhysicalDomain","network_engine_domain",
+B0005,SC1,SubClassName,"SubClassName","solver",
+B0005,SC1,LeftPortType,"LeftPortType","input",
+B0005,SC1,RightPortType,"RightPortType","generic",
+B0005,SC1,Tones,"Tones","[]",
+B0005,SC1,Harmonics,"Harmonics","[]",
+B0005,SC1,SimulateNoise,"SimulateNoise","off",
+B0005,SC1,IndexReductionMethod,"IndexReductionMethod","DerivativeReplacement",
+B0005,SC1,DoDC,"DoDC","off",
+B0005,SC1,ResidualTolerance,"ResidualTolerance","1e-09",
+B0005,SC1,ConsistencyTolSource,"ConsistencyTolSource","GLOBAL",
+B0005,SC1,ConsistencyAbsTol,"ConsistencyAbsTol","0.001",
+B0005,SC1,ConsistencyRelTol,"ConsistencyRelTol","0.001",
+B0005,SC1,ConsistencyTolFactor,"ConsistencyTolFactor","0.001",
+B0005,SC1,UseLocalSolver,"UseLocalSolver","off",
+B0005,SC1,LocalSolverChoice,"LocalSolverChoice","NE_BACKWARD_EULER_ADVANCER",
+B0005,SC1,ResolveIndetEquations,"ResolveIndetEquations","on",
+B0005,SC1,FunctionEvalNumThread,"FunctionEvalNumThread","1",
+B0005,SC1,LocalSolverSampleTime,"LocalSolverSampleTime","0.001",
+B0005,SC1,DoFixedCost,"DoFixedCost","off",
+B0005,SC1,MaxNonlinIter,"MaxNonlinIter","3",
+B0005,SC1,MaxModeIter,"MaxModeIter","2",
+B0005,SC1,ComputeImpulses,"ComputeImpulses","off",
+B0005,SC1,ImpulseIterations,"ImpulseIterations","2",
+B0005,SC1,LinearAlgebra,"LinearAlgebra","auto",
+B0005,SC1,LinearAlgebraNumThread,"LinearAlgebraNumThread","0",
+B0005,SC1,EquationFormulation,"EquationFormulation","NE_TIME_EF",
+B0005,SC1,DelaysMemoryBudget,"DelaysMemoryBudget","1024",
+B0005,SC1,AutomaticFiltering,"AutomaticFiltering","on",
+B0005,SC1,FilteringTimeConstant,"FilteringTimeConstant","0.001",
+B0005,SC1,PartitionStorageMethod,"PartitionStorageMethod","AS_NEEDED",
+B0005,SC1,PartitionMemoryBudget,"PartitionMemoryBudget","1024",
+B0005,SC1,PartitionMethod,"PartitionMethod","BALANCED",
+B0005,SC1,MultibodyUseLocalSolver,"MultibodyUseLocalSolver","off",
+B0005,SC1,MultibodyLocalSolverChoice,"MultibodyLocalSolverChoice","ODE1",
+B0005,SC1,MultibodyLocalSolverSampleTime,"MultibodyLocalSolverSampleTime","0.001",
+B0006,V1,dc_voltage,"DC voltage","0",V
+B0006,V1,dc_voltage_conf,"dc_voltage_conf","compiletime",
+B0006,V1,ac_voltage,"AC voltage peak amplitude","0",V
+B0006,V1,ac_voltage_conf,"ac_voltage_conf","compiletime",
+B0006,V1,ac_shift,"AC voltage phase shift","0",rad
+B0006,V1,ac_shift_conf,"ac_shift_conf","compiletime",
+B0006,V1,ac_frequency,"AC voltage frequency","60",Hz
+B0006,V1,ac_frequency_conf,"ac_frequency_conf","compiletime",
+B0006,V1,noise_mode,"Noise mode","ee.enum.sources.noise.Disabled",1
+B0006,V1,noise_mode_conf,"noise_mode_conf","compiletime",
+B0006,V1,PSD,"Power spectral density","0",V^2/Hz
+B0006,V1,PSD_conf,"PSD_conf","compiletime",
+B0006,V1,sample_time,"Sample time","1e-3",s
+B0006,V1,sample_time_conf,"sample_time_conf","compiletime",
+B0006,V1,repeatability,"Repeatability","ee.enum.sources.repeatability.NotRepeatable",1
+B0006,V1,repeatability_conf,"repeatability_conf","compiletime",
+B0006,V1,user_seed,"Seed","0",1
+B0006,V1,user_seed_conf,"user_seed_conf","compiletime",
+B0006,V1,auto_seed,"Auto-generated seed used for repeatable option","3499211588",1
+B0006,V1,auto_seed_conf,"auto_seed_conf","compiletime",
+B0006,V1,i_specify,"i_specify","off",
+B0006,V1,i_priority,"i_priority","None",
+B0006,V1,i,"i","0",A
+B0006,V1,i_nominal_specify,"i_nominal_specify","off",
+B0006,V1,i_nominal_value,"i_nominal_value","1",
+B0006,V1,i_nominal_unit,"i_nominal_unit","A",
+B0006,V1,v_specify,"v_specify","off",
+B0006,V1,v_priority,"v_priority","None",
+B0006,V1,v,"v","0",V
+B0006,V1,v_nominal_specify,"v_nominal_specify","off",
+B0006,V1,v_nominal_value,"v_nominal_value","1",
+B0006,V1,v_nominal_unit,"v_nominal_unit","V",
