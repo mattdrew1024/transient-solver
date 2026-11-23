@@ -1,0 +1,4 @@
+Designator,Type,NodePos,NodeNeg,Value,Waveform,Amplitude,Frequency,Phase,IC,Sensitivity,Expression,Derivative
+C1,C,n1,0,1e-06,,,,,,,,
+R1,R,n2,n1,1000,,,,,,,,
+V1,V,n2,0,5,DC,,,,,,,

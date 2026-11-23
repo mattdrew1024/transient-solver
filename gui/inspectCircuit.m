@@ -7,8 +7,9 @@ function report = inspectCircuit(modelOrFile, outputFolder, varargin)
 %
 %   model         Name of a model on the MATLAB path, or a full/relative path
 %                 to a .slx or .mdl file.
-%   outputFolder  Optional. When non-empty, the CSV files are written there
-%                 (see writeInspectionReport).
+%   outputFolder  Optional. When non-empty, the circuit CSV is written to
+%                 <outputFolder>/<model>.csv (or to outputFolder itself if it
+%                 ends in .csv). See writeCircuitCsv.
 %   'CloseModel'  Optional (default false). Close the model afterwards, but
 %                 only if inspectCircuit was the one that loaded it.
 %
@@ -17,7 +18,10 @@ function report = inspectCircuit(modelOrFile, outputFolder, varargin)
 %     Components  1 row per block: diagram position, role, linearity verdict
 %     Ports       1 row per port: terminal name, NetID, electrical NodeID
 %     Nets        1 row per connected net: which component terminals share it
-%     Netlist     1 row per two-terminal electrical element: + node, - node, value
+%     Netlist     the circuit CSV: one row per part (R, C, L, V, I, NL), columns
+%                 Designator,Type,NodePos,NodeNeg,Value,Waveform,Amplitude,
+%                 Frequency,Phase,IC,Sensitivity,Expression,Derivative
+%                 (all text; blank = not used / default)
 %     Parameters  every dialog parameter: prompt, raw expression, unit
 %     Warnings    topology / configuration / extraction issues
 %
@@ -342,35 +346,76 @@ try
     end
 
     % ------------------------------------------------------------------
-    stage = 'building the netlist';
-    netlistRows = cell(0, 8);
+    stage = 'building the circuit CSV';
+    % One row per part, in the solver's input format (see circuitCsvColumns):
+    % Designator,Type,NodePos,NodeNeg,Value,Waveform,Amplitude,Frequency,
+    % Phase,IC,Sensitivity,Expression,Derivative
+    netlistRows = cell(0, numel(circuitCsvColumns()));
     for c = 1:nB
         rule = comp(c).Rule;
-        if ~isRealComp(c) || ~strcmp(rule.Domain, 'electrical') || size(rule.Terminals, 1) ~= 2 ...
-                || ~all(ismember(rule.Terminals(:, 2), {'+', '-'}))
+        if ~isRealComp(c) || ~strcmp(rule.Domain, 'electrical')
+            continue
+        end
+        isCurrentSensor = strcmp(rule.Leaf, 'Current Sensor');
+        twoTerminal = size(rule.Terminals, 1) == 2 && all(ismember(rule.Terminals(:, 2), {'+', '-'}));
+        if ~twoTerminal && ~isCurrentSensor
+            if ~any(strcmp(rule.Role, {'REFERENCE', 'SENSOR'}))
+                addWarning('WARNING', 'NOT_IN_CSV', comp(c).ID, sprintf(['%s (%s) is not a ' ...
+                    'two-terminal R, C, L, V, I or NL part, so it is not in the circuit CSV.'], ...
+                    comp(c).Designator, comp(c).Name));
+            end
             continue
         end
         stageBlock = comp(c).Path;
-        nodes = {'?', '?'};
-        for t = 1:2
-            key = rule.Terminals{t, 1};
-            k = find(portComp == c & strcmp(strcat(portGroup, arrayfun(@num2str, portIdx, ...
-                'UniformOutput', false)), key), 1);
-            if ~isempty(k) && ~isempty(portNode{k})
-                nodes{t} = portNode{k};
+
+        % ---- nodes
+        if isCurrentSensor
+            % An ideal current sensor is a short circuit between its two
+            % electrical ports. It is written as a 0 V source so the solver
+            % keeps both nodes and gets the sensor current as an unknown.
+            % Its physical-signal output (I) also gets a node ID, so keep only
+            % ports whose node is shared with another electrical component.
+            k = find(portComp == c & ~cellfun(@isempty, portNode));
+            k = k(arrayfun(@(q) any(arrayfun(@(o) portComp(o) ~= c && ...
+                strcmp(comp(portComp(o)).Domain, 'electrical'), ...
+                find(strcmp(portNode, portNode{q})))), k));
+            if numel(k) ~= 2
+                addWarning('WARNING', 'NOT_IN_CSV', comp(c).ID, sprintf(['Current sensor %s ' ...
+                    'does not have exactly two connected electrical ports; it is not in the CSV.'], ...
+                    comp(c).Name));
+                continue
+            end
+            pos = portNode{k(1)};
+            neg = portNode{k(2)};
+        else
+            nodes = {'?', '?'};
+            for t = 1:2
+                key = rule.Terminals{t, 1};
+                k = find(portComp == c & strcmp(strcat(portGroup, arrayfun(@num2str, portIdx, ...
+                    'UniformOutput', false)), key), 1);
+                if ~isempty(k) && ~isempty(portNode{k})
+                    nodes{t} = portNode{k};
+                else
+                    addWarning('WARNING', 'UNCONNECTED_TERMINAL', comp(c).ID, sprintf( ...
+                        'Terminal %s (%s) of %s has no electrical node; shown as "?" in the CSV.', ...
+                        rule.Terminals{t, 2}, key, comp(c).Name));
+                end
+            end
+            if strcmp(rule.Terminals{1, 2}, '+')
+                pos = nodes{1}; neg = nodes{2};
             else
-                addWarning('WARNING', 'UNCONNECTED_TERMINAL', comp(c).ID, sprintf( ...
-                    'Terminal %s (%s) of %s has no electrical node; shown as "?" in the netlist.', ...
-                    rule.Terminals{t, 2}, key, comp(c).Name));
+                pos = nodes{2}; neg = nodes{1};
             end
         end
-        if strcmp(rule.Terminals{1, 2}, '+')
-            pos = nodes{1}; neg = nodes{2};
-        else
-            pos = nodes{2}; neg = nodes{1};
+
+        % ---- type and values
+        [row, notes] = circuitRow(comp(c), pos, neg, isCurrentSensor);
+        for n = 1:numel(notes)
+            addWarning(notes{n}{1}, notes{n}{2}, comp(c).ID, notes{n}{3});
         end
-        netlistRows(end + 1, :) = {comp(c).Designator, comp(c).ID, comp(c).Name, ...
-            comp(c).Role, comp(c).Assessment, pos, neg, valueSummary(rule, comp(c).Params)}; %#ok<AGROW>
+        if ~isempty(row)
+            netlistRows(end + 1, :) = row; %#ok<AGROW>
+        end
     end
     stageBlock = '';
 
@@ -412,9 +457,7 @@ try
     report.Ports = portTable();
     report.Nets = makeTable(netRows, ...
         {'NetID', 'Kind', 'NodeID', 'IsGround', 'ComponentPortCount', 'Members'});
-    report.Netlist = makeTable(netlistRows, ...
-        {'Designator', 'ComponentID', 'Name', 'Role', 'Assessment', ...
-        'PositiveNode', 'NegativeNode', 'Value'});
+    report.Netlist = makeTable(netlistRows, circuitCsvColumns());
     report.Parameters = parameterTable();
     report.Warnings = makeTable(warnRows, ...
         {'Severity', 'Code', 'ComponentID', 'Message', 'Location'});
@@ -428,8 +471,12 @@ try
         'NetworkCount', 'WarningCount', 'InspectedAt', 'MATLABRelease'});
 
     if ~isempty(outputFolder)
-        stage = 'writing CSV files';
-        writeInspectionReport(report, outputFolder);
+        stage = 'writing the circuit CSV';
+        csvFile = outputFolder;
+        if ~endsWith(lower(csvFile), '.csv')
+            csvFile = fullfile(outputFolder, [model '.csv']);
+        end
+        writeCircuitCsv(report.Netlist, csvFile);
     end
 
 catch ME
@@ -587,6 +634,186 @@ end
 
 % =====================================================================
 % Local functions
+
+% =====================================================================
+% Circuit CSV
+
+function names = circuitCsvColumns()
+names = {'Designator', 'Type', 'NodePos', 'NodeNeg', 'Value', 'Waveform', ...
+    'Amplitude', 'Frequency', 'Phase', 'IC', 'Sensitivity', 'Expression', 'Derivative'};
+end
+
+function [row, notes] = circuitRow(c, pos, neg, isCurrentSensor)
+% Builds one circuit-CSV row (13 text cells) for component c.
+% notes: {severity, code, message} triples for the Warnings table.
+row = repmat({''}, 1, numel(circuitCsvColumns()));
+notes = {};
+rule = c.Rule;
+P = c.Params;
+h = c.Handle;
+designator = c.Designator;
+
+if isCurrentSensor
+    type = 'V';
+    designator = ['V' c.Designator];        % e.g. VAM1: unique, and Type V
+elseif strcmp(c.Assessment, 'NONLINEAR')
+    type = 'NL';
+else
+    type = rule.Prefix;
+end
+
+switch type
+    case 'R'
+        [row{5}, n] = num(h, P, {'R'}, {'Resistance'}, 'Ohm');
+        notes = [notes, n];
+    case 'C'
+        [row{5}, n] = num(h, P, {'c', 'C'}, {'Capacitance'}, 'F');
+        notes = [notes, n];
+        [row{10}, n] = initialCondition(h, P, {'vc'}, {'Capacitor voltage'}, 'V');
+        notes = [notes, n];
+    case 'L'
+        [row{5}, n] = num(h, P, {'l', 'L'}, {'Inductance'}, 'H');
+        notes = [notes, n];
+        [row{10}, n] = initialCondition(h, P, {'i_L', 'iL'}, {'Inductor current'}, 'A');
+        notes = [notes, n];
+    case {'V', 'I'}
+        if isCurrentSensor
+            row{5} = '0';
+            row{6} = 'DC';
+            notes{end + 1} = {'INFO', 'CURRENT_SENSOR_AS_0V', sprintf(['Current sensor %s is ' ...
+                'written as %s, a 0 V source between its two terminals.'], c.Name, designator)};
+        else
+            [row(5:9), n] = sourceColumns(h, P, type);
+            notes = [notes, n];
+        end
+    case 'NL'
+        notes{end + 1} = {'INFO', 'NL_EXPRESSION_NEEDED', sprintf(['%s (%s) is written as ' ...
+            'Type NL. Fill in Expression (I(v)) and Derivative (dI/dv) in the CSV.'], ...
+            designator, c.Name)};
+    otherwise
+        notes{end + 1} = {'WARNING', 'NOT_IN_CSV', sprintf(['%s (%s) has no circuit-CSV type ' ...
+            '(prefix %s), so it is not in the CSV.'], designator, c.Name, rule.Prefix)};
+        row = {};
+        return
+end
+row{1} = designator;
+row{2} = type;
+row{3} = pos;
+row{4} = neg;
+for k = 1:numel(notes)
+    notes{k}{3} = strrep(notes{k}{3}, '%DES%', designator);
+end
+end
+
+function [cols, notes] = sourceColumns(h, P, type)
+% Value, Waveform, Amplitude, Frequency, Phase for V and I sources.
+% Simscape Electrical sources are DC + AC*sin(2*pi*f*t + phase), which is
+% exactly the CSV's Value + Amplitude*sin(2*pi*Frequency*t + Phase).
+cols = repmat({''}, 1, 5);
+notes = {};
+if strcmp(type, 'V')
+    q = 'voltage';
+    u = 'V';
+    dcNames = {'dc_voltage', 'v0'};
+    dcPrompts = {'DC voltage', 'Constant voltage'};
+    acNames = {'ac_voltage', 'amp'};
+    acPrompts = {'AC voltage peak amplitude', 'Peak amplitude'};
+else
+    q = 'current';
+    u = 'A';
+    dcNames = {'dc_current', 'i0'};
+    dcPrompts = {'DC current', 'Constant current'};
+    acNames = {'ac_current', 'amp'};
+    acPrompts = {'AC current peak amplitude', 'Peak amplitude'};
+end
+[dc, n1] = num(h, P, dcNames, dcPrompts, u);
+[amp, n2] = num(h, P, acNames, acPrompts, u);
+[freq, n3] = num(h, P, {'ac_frequency', 'frequency'}, ...
+    {['AC ' q ' frequency'], 'Frequency'}, 'Hz');
+[phase, n4] = num(h, P, {'ac_shift', 'shift'}, ...
+    {['AC ' q ' phase shift'], 'Phase shift'}, 'rad');
+notes = [n1, n2, n3, n4];
+if isempty(dc)
+    dc = '0';                          % AC-only blocks have no DC part
+end
+cols{1} = dc;
+if ~isempty(amp) && str2double(amp) ~= 0
+    cols{2} = 'SIN';
+    cols{3} = amp;
+    cols{4} = freq;
+    if isempty(phase)
+        phase = '0';
+    end
+    cols{5} = phase;
+else
+    cols{2} = 'DC';
+end
+end
+
+function [txt, notes] = initialCondition(h, P, names, prompts, unit)
+% IC column: only when the block's initial target is enabled
+% (<name>_specify = on); otherwise blank, which the solver reads as 0.
+txt = '';
+notes = {};
+for k = 1:numel(names)
+    flag = lower(paramValue(P, {[names{k} '_specify']}, {}));
+    if any(strcmp(flag, {'on', 'true', '1'}))
+        [txt, notes] = num(h, P, names(k), prompts, unit);
+        return
+    end
+end
+end
+
+function [txt, notes] = num(h, P, names, prompts, target)
+% Evaluate a dialog parameter and return it as text in SI units (target).
+txt = '';
+notes = {};
+[expr, found, unit] = paramValue(P, names, prompts);
+if ~found
+    return
+end
+[x, problem] = evalInUnit(h, expr, unit, target);
+if isempty(problem)
+    txt = sprintf('%.15g', x);
+else
+    notes{end + 1} = {'WARNING', 'VALUE_NOT_EVALUATED', sprintf(['%%DES%%: %s. ' ...
+        'The cell is left blank in the CSV.'], problem)};
+end
+end
+
+function [x, problem] = evalInUnit(h, expr, unit, target)
+% expr is the raw dialog text ('1e-6', 'Cnom', '2*R0'); unit is the unit
+% selected next to it ('uF', 'kOhm', 'deg', ...). Workspace variables are
+% resolved the way Simulink would (model workspace, data dictionary,
+% base workspace) with slResolve.
+x = NaN;
+problem = '';
+v = str2double(expr);
+if isnan(v)
+    try
+        v = slResolve(expr, getfullname(h));
+    catch ME
+        problem = sprintf('could not evaluate "%s" (%s)', expr, ME.message);
+        return
+    end
+end
+if ~(isnumeric(v) || islogical(v)) || ~isscalar(v) || ~isfinite(double(v))
+    problem = sprintf('"%s" is not a finite scalar number', expr);
+    return
+end
+v = double(v);
+unit = strtrim(char(unit));
+if ~isempty(target) && ~isempty(unit) && ~strcmp(unit, target) && ~strcmp(unit, '1')
+    try
+        v = value(simscape.Value(v, unit), target);
+    catch ME
+        problem = sprintf('could not convert %s %s to %s (%s)', expr, unit, target, ME.message);
+        return
+    end
+end
+x = v;
+end
+
 % =====================================================================
 
 function opts = parseOptions(varargin)

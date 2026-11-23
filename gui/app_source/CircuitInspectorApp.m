@@ -11,6 +11,11 @@ classdef CircuitInspectorApp < matlab.apps.App
         MainGrid                        matlab.ui.container.GridLayout
         MessagesTextArea                matlab.ui.control.TextArea
         ResultsTabGroup                 matlab.ui.container.TabGroup
+        DiagramTab                      matlab.ui.container.Tab
+        DiagramGrid                     matlab.ui.container.GridLayout
+        DiagramImage                    matlab.ui.control.Image
+        OpenInSimulinkButton            matlab.ui.control.Button
+        DiagramInfoLabel                matlab.ui.control.Label
         ComponentsTab                   matlab.ui.container.Tab
         ComponentsGrid                  matlab.ui.container.GridLayout
         ComponentsTable                 matlab.ui.control.Table
@@ -45,8 +50,14 @@ classdef CircuitInspectorApp < matlab.apps.App
 
         % Code that executes after component creation
         function startupFcn(app)
+            % The helpers live in gui/, one level above this file
+            guiFolder = fileparts(fileparts(mfilename('fullpath')));
+            if ~exist('circuitInspectorActions', 'file')
+                addpath(guiFolder);
+            end
             circuitInspectorActions('startup', app);
         end
+            
 
         % Button pushed function: SelectModelButton
         function SelectModelButtonPushed(app, event)
@@ -61,6 +72,11 @@ classdef CircuitInspectorApp < matlab.apps.App
         % Button pushed function: ExportButton
         function ExportButtonPushed(app, event)
             circuitInspectorActions('export', app);
+        end
+
+        % Button pushed function: OpenInSimulinkButton
+        function OpenInSimulinkButtonPushed(app, event)
+            circuitInspectorActions('opendiagram', app);
         end
     end
 

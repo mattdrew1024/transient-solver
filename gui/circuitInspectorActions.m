@@ -2,7 +2,7 @@ function circuitInspectorActions(action, app)
 %CIRCUITINSPECTORACTIONS  Behavior behind the CircuitInspectorApp buttons.
 %
 %   circuitInspectorActions(action, app)
-%     action: 'startup' | 'select' | 'inspect' | 'export'
+%     action: 'startup' | 'select' | 'inspect' | 'export' | 'opendiagram'
 %     app:    the running CircuitInspectorApp
 %
 %   The App Designer callbacks are one-liners that call this function, so
@@ -14,6 +14,11 @@ function circuitInspectorActions(action, app)
 %   InspectButton, ExportButton, ModelPathLabel, ClassificationLabel,
 %   ComponentsTable, PortsTable, NetsTable, NetlistTable, WarningsTable,
 %   MessagesTextArea, and public properties ModelFile and Report.
+%
+%   The "Diagram" tab (picture of the selected model, so you can check it is
+%   the right file) is created by this file at startup, inside
+%   ResultsTabGroup, so the app itself does not need to be edited. Its
+%   components are found again through their Tag values (see diagramUi).
 
 try
     switch lower(char(action))
@@ -25,6 +30,8 @@ try
             inspect(app);
         case 'export'
             exportCsv(app);
+        case 'opendiagram'
+            openInSimulink(app);
         otherwise
             error('circuitInspectorActions:unknownAction', 'Unknown action "%s".', char(action));
     end
@@ -43,10 +50,12 @@ app.ExportButton.Enable = 'off';
 app.ModelPathLabel.Text = 'No model selected.';
 setResult(app, 'Result: not inspected yet', [0.3 0.3 0.3]);
 clearTables(app);
+ensureDiagramTab(app);
+clearDiagram(app, 'Select a model to see its diagram here.');
 
 msgs = {'1. Select Model: choose your Simulink/Simscape model (.slx or .mdl).'
     '2. Inspect: list components, ports, nets and the netlist, and check linearity.'
-    '3. Export CSVs: write the tables to a folder.'};
+    '3. Export CSV: save the Netlist tab as one circuit CSV for the solver.'};
 if exist('inspectCircuit', 'file') ~= 2
     msgs{end + 1} = ['WARNING: inspectCircuit.m is not on the MATLAB path. ' ...
         'Run addpath(''<repo>/gui'') before inspecting.'];
@@ -76,6 +85,7 @@ app.ExportButton.Enable = 'off';
 clearTables(app);
 setResult(app, 'Result: not inspected yet', [0.3 0.3 0.3]);
 app.MessagesTextArea.Value = {sprintf('Selected %s. Click "2. Inspect".', f)};
+showDiagram(app);
 end
 
 function inspect(app)
@@ -104,20 +114,24 @@ app.ExportButton.Enable = 'on';
 end
 
 function exportCsv(app)
+% Writes ONE file: the circuit CSV, taken from the Netlist tab, so edits
+% made there (Sensitivity, IC, Expression, Derivative) are included.
 if isempty(app.Report)
     uialert(app.UIFigure, 'Inspect a model before exporting.', 'Nothing to export');
     return
 end
-folder = uigetdir(fileparts(app.ModelFile), 'Choose a folder for the CSV files');
+[folder, name] = fileparts(app.ModelFile);
+[f, p] = uiputfile({'*.csv', 'Circuit CSV (*.csv)'}, 'Save the circuit CSV', ...
+    fullfile(folder, [name '.csv']));
 figure(app.UIFigure);
-if isequal(folder, 0)
+if isequal(f, 0)
     return
 end
-[~, name] = fileparts(app.ModelFile);
-target = fullfile(folder, [name '_inspection']);
-files = writeInspectionReport(app.Report, target);
-app.MessagesTextArea.Value = [{sprintf('Wrote %d CSV files to:', numel(files)); target}; files(:)];
-uialert(app.UIFigure, sprintf('Wrote %d CSV files to\n%s', numel(files), target), ...
+target = fullfile(p, f);
+writeCircuitCsv(app.NetlistTable.Data, target);
+n = height(app.NetlistTable.Data);
+app.MessagesTextArea.Value = {sprintf('Wrote %d parts to %s', n, target)};
+uialert(app.UIFigure, sprintf('Wrote %d parts to\n%s', n, target), ...
     'Export complete', 'Icon', 'success');
 end
 
@@ -129,6 +143,10 @@ app.ComponentsTable.Data = r.Components;
 app.PortsTable.Data = r.Ports;
 app.NetsTable.Data = r.Nets;
 app.NetlistTable.Data = r.Netlist;
+% Columns the model cannot provide are editable here before export:
+% Sensitivity (1 = sensitivity parameter), IC, Expression, Derivative.
+cols = r.Netlist.Properties.VariableNames;
+app.NetlistTable.ColumnEditable = ismember(cols, {'Sensitivity', 'IC', 'Expression', 'Derivative'});
 app.WarningsTable.Data = r.Warnings;
 
 s = r.Summary;
@@ -193,6 +211,101 @@ app.PortsTable.Data = table();
 app.NetsTable.Data = table();
 app.NetlistTable.Data = table();
 app.WarningsTable.Data = table();
+end
+
+% ---- Diagram tab ------------------------------------------------------
+
+function ensureDiagramTab(app)
+% Build the Diagram tab once, as the first tab of ResultsTabGroup.
+if ~isempty(diagramUi(app, 'Tab'))
+    return
+end
+tg = app.ResultsTabGroup;
+tab = uitab(tg, 'Title', 'Diagram', 'Tag', 'CI_DiagramTab', 'AutoResizeChildren', 'off');
+tg.Children = tg.Children([end, 1:end - 1]);     % move it to the front
+
+g = uigridlayout(tab, [2 2]);
+g.RowHeight = {'fit', '1x'};
+g.ColumnWidth = {'1x', 'fit'};
+g.Padding = [4 4 4 4];
+
+info = uilabel(g, 'Tag', 'CI_DiagramInfo', 'WordWrap', 'on', 'Text', '');
+info.Layout.Row = 1;
+info.Layout.Column = 1;
+
+btn = uibutton(g, 'push', 'Tag', 'CI_DiagramOpen', 'Text', 'Open in Simulink', ...
+    'Enable', 'off', 'ButtonPushedFcn', @(~, ~) circuitInspectorActions('opendiagram', app));
+btn.Layout.Row = 1;
+btn.Layout.Column = 2;
+
+img = uiimage(g, 'Tag', 'CI_DiagramImage', 'ScaleMethod', 'fit');
+img.Layout.Row = 2;
+img.Layout.Column = [1 2];
+end
+
+function h = diagramUi(app, part)
+% part: 'Tab' | 'Info' | 'Open' | 'Image'
+% Use the components designed in App Designer when the app has them;
+% otherwise use the ones ensureDiagramTab created (found by Tag).
+names = struct('Tab', 'DiagramTab', 'Info', 'DiagramInfoLabel', ...
+    'Open', 'OpenInSimulinkButton', 'Image', 'DiagramImage');
+prop = names.(part);
+if isprop(app, prop) && ~isempty(app.(prop))
+    h = app.(prop);
+else
+    h = findobj(app.UIFigure, 'Tag', ['CI_Diagram' part]);
+end
+end
+
+function setUi(app, part, prop, value)
+% MATLAB cannot assign to a property of a function's return value
+% directly (f(x).Prop = v), so fetch the handle first.
+h = diagramUi(app, part);
+if ~isempty(h)
+    set(h, prop, value);
+end
+end
+
+function clearDiagram(app, text)
+img = diagramUi(app, 'Image');
+if isempty(img)
+    return
+end
+img.ImageSource = '';
+setUi(app, 'Info', 'Text', text);
+setUi(app, 'Open', 'Enable', 'off');
+end
+
+function showDiagram(app)
+ensureDiagramTab(app);
+clearDiagram(app, 'Rendering diagram ...');
+drawnow
+try
+    [png, info] = renderModelDiagram(app.ModelFile);
+catch ME
+    % A missing picture must not block inspection: report it and go on.
+    clearDiagram(app, sprintf('No diagram available: %s', ME.message));
+    setUi(app, 'Open', 'Enable', 'on');
+    app.MessagesTextArea.Value = [app.MessagesTextArea.Value(:); ...
+        {['Diagram: ' ME.message]}];
+    return
+end
+setUi(app, 'Image', 'ImageSource', png);
+txt = sprintf('%s   |   %s   |   saved %s', info.ModelName, info.File, info.FileDate);
+if ~isempty(info.Note)
+    txt = sprintf('%s\n%s', txt, info.Note);
+    app.MessagesTextArea.Value = [app.MessagesTextArea.Value(:); {['Diagram: ' info.Note]}];
+end
+setUi(app, 'Info', 'Text', txt);
+setUi(app, 'Open', 'Enable', 'on');
+app.ResultsTabGroup.SelectedTab = diagramUi(app, 'Tab');
+end
+
+function openInSimulink(app)
+if isempty(app.ModelFile)
+    return
+end
+open_system(app.ModelFile);
 end
 
 function closeDialog(d)
