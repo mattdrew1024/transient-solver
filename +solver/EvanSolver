@@ -1,1 +1,239 @@
+function dae = construct_dae(model, options)
+% CONSTRUCT_DAE  Section 1: form and validate TADsens Equation (1).
+%
+%   d/dt[q(x,p,t)] + f(x,p,t) + b(t) = 0
+%
+% The stamping team has ALREADY assembled the mathematical model.
+% This function does not perform stamping or solve any time steps.
+%
+% Two supported input modes:
+%   model.mode = 'matrices' : Cmat, Gmat, dCdp, dGdp, b
+%                             optional offset and dOffsetdp
+%   model.mode = 'functions': q, f, b, Cx, G, Sq, Sf
+%
+% In matrix mode:
+%   q = Cmat(p,t)*x
+%   f = Gmat(p,t)*x + offset(p,t)
+%   b = b(t)                         (paper's LEFT-HAND-SIDE sign)
+%   Sq(:,j) = dCdp(:,:,j)*x
+%   Sf(:,j) = dGdp(:,:,j)*x + dOffsetdp(:,j)
+%
+% Common required fields: n, p, x0, h, T
+% Optional fields: t0 (default 0), M0 (default zeros(n,np))
+% Optional options: checkDerivatives (true), fdRelStep (1e-6),
+%                   derivativeTolerance (2e-4)
+
+    % STEP 1: Confirm the model and options exist.
+    if nargin < 1
+        error('Provide a model structure. Run test_construct_dae.m for examples.');
+    end
+    if nargin < 2
+        options = struct();
+    end
+    assert(isstruct(model) && isscalar(model), 'model must be a scalar struct.');
+    assert(isstruct(options) && isscalar(options), 'options must be a scalar struct.');
+
+    % STEP 2: Read validation settings.
+    checkDerivatives = optionValue(options, 'checkDerivatives', true);
+    fdRelStep = optionValue(options, 'fdRelStep', 1e-6);
+    tolerance = optionValue(options, 'derivativeTolerance', 2e-4);
+    assert(islogical(checkDerivatives) && isscalar(checkDerivatives), ...
+        'checkDerivatives must be true or false.');
+    validateattributes(fdRelStep, {'numeric'}, {'scalar','real','finite','positive'});
+    validateattributes(tolerance, {'numeric'}, {'scalar','real','finite','positive'});
+
+    % STEP 3: Validate common inputs and dimensions.
+    required = {'n','p','x0','h','T','mode'};
+    for k = 1:numel(required)
+        assert(isfield(model,required{k}), 'Missing model field: %s',required{k});
+    end
+    validateattributes(model.n, {'numeric'}, {'scalar','real','finite','integer','positive'});
+    n = double(model.n);
+    validateattributes(model.p, {'numeric'}, {'vector','real','finite','nonempty'});
+    p = double(model.p(:));
+    np = numel(p);
+    validateattributes(model.x0, {'numeric'}, {'vector','real','finite','numel',n});
+    x0 = double(model.x0(:));
+    validateattributes(model.h, {'numeric'}, {'scalar','real','finite','positive'});
+    validateattributes(model.T, {'numeric'}, {'scalar','real','finite','positive'});
+    h = double(model.h);
+    T = double(model.T);
+    t0 = 0;
+    if isfield(model,'t0')
+        validateattributes(model.t0, {'numeric'}, {'scalar','real','finite'});
+        t0 = double(model.t0);
+    end
+    assert(isfinite(t0+T), 'Final simulation time must be finite.');
+    N = round(T/h);
+    assert(N >= 1 && abs(N*h-T) <= 1e-9*max(T,h), ...
+        'T must be an integer multiple of h.');
+    M0 = zeros(n,np);
+    if isfield(model,'M0')
+        M0 = checkMatrix(model.M0,n,np,'M0');
+    end
+
+    % STEP 4: Construct q, f and Jacobians from supplied stamped data.
+    mode = char(model.mode);
+    if strcmp(mode,'matrices')
+        % The matrices are already stamped. We only form the DAE.
+        matrixFields = {'Cmat','Gmat','dCdp','dGdp','b'};
+        checkHandles(model,matrixFields);
+        Cmat = model.Cmat; Gmat = model.Gmat;
+        dCdp = model.dCdp; dGdp = model.dGdp;
+        offset = @(p,t) zeros(n,1);
+        dOffsetdp = @(p,t) zeros(n,np);
+        if isfield(model,'offset')
+            assert(isa(model.offset,'function_handle'), 'offset must be a function handle.');
+            offset = model.offset;
+        end
+        if isfield(model,'dOffsetdp')
+            assert(isa(model.dOffsetdp,'function_handle'), 'dOffsetdp must be a function handle.');
+            dOffsetdp = model.dOffsetdp;
+        end
+        % The supplied derivatives are 3D arrays: n-by-n-by-np.
+        % MATLAB may omit a trailing single dimension when np=1.
+        checkMatrix(Cmat(p,t0),n,n,'Cmat');
+        checkMatrix(Gmat(p,t0),n,n,'Gmat');
+        checkDerivativeStack(dCdp(p,t0),n,np,'dCdp');
+        checkDerivativeStack(dGdp(p,t0),n,np,'dGdp');
+        checkColumn(offset(p,t0),n,'offset');
+        checkMatrix(dOffsetdp(p,t0),n,np,'dOffsetdp');
+        qfun = @(x,p,t) Cmat(p,t)*x;
+        ffun = @(x,p,t) Gmat(p,t)*x + offset(p,t);
+        bfun = model.b;
+        Cxfun = @(x,p,t) Cmat(p,t);
+        Gfun = @(x,p,t) Gmat(p,t);
+        Sqfun = @(x,p,t) matrixParameterTerms(dCdp(p,t),x,n,np);
+        Sffun = @(x,p,t) matrixParameterTerms(dGdp(p,t),x,n,np) + dOffsetdp(p,t);
+    elseif strcmp(mode,'functions')
+        % For nonlinear models, the stamping team supplies q and f directly.
+        functionFields = {'q','f','b','Cx','G','Sq','Sf'};
+        checkHandles(model,functionFields);
+        qfun = model.q; ffun = model.f; bfun = model.b;
+        Cxfun = model.Cx; Gfun = model.G;
+        Sqfun = model.Sq; Sffun = model.Sf;
+    else
+        error('model.mode must be ''matrices'' or ''functions''.');
+    end
+
+    % STEP 5: Validate all DAE functions and Jacobian sizes.
+    q0 = checkColumn(qfun(x0,p,t0),n,'q');
+    f0 = checkColumn(ffun(x0,p,t0),n,'f');
+    b0 = checkColumn(bfun(t0),n,'b');
+    Cx0 = checkMatrix(Cxfun(x0,p,t0),n,n,'Cx');
+    G0 = checkMatrix(Gfun(x0,p,t0),n,n,'G');
+    Sq0 = checkMatrix(Sqfun(x0,p,t0),n,np,'Sq');
+    Sf0 = checkMatrix(Sffun(x0,p,t0),n,np,'Sf');
+
+    % STEP 6: Check that time dependent outputs remain valid at final time.
+    finalTime = t0 + T;
+    checkColumn(qfun(x0,p,finalTime),n,'q at final time');
+    checkColumn(ffun(x0,p,finalTime),n,'f at final time');
+    checkColumn(bfun(finalTime),n,'b at final time');
+    checkMatrix(Cxfun(x0,p,finalTime),n,n,'Cx at final time');
+    checkMatrix(Gfun(x0,p,finalTime),n,n,'G at final time');
+    checkMatrix(Sqfun(x0,p,finalTime),n,np,'Sq at final time');
+    checkMatrix(Sffun(x0,p,finalTime),n,np,'Sf at final time');
+
+    % STEP 7: Optional numerical checks of all four Jacobians.
+    if checkDerivatives
+        verifyJacobian(qfun,x0,p,t0,Cx0,'x',fdRelStep,tolerance,'Cx = dq/dx');
+        verifyJacobian(ffun,x0,p,t0,G0,'x',fdRelStep,tolerance,'G = df/dx');
+        verifyJacobian(qfun,x0,p,t0,Sq0,'p',fdRelStep,tolerance,'Sq = dq/dp');
+        verifyJacobian(ffun,x0,p,t0,Sf0,'p',fdRelStep,tolerance,'Sf = df/dp');
+    end
+
+    % STEP 8: Package the validated DAE for the later solver sections.
+    dae.n=n; dae.np=np; dae.p=p; dae.x0=x0; dae.M0=M0;
+    dae.h=h; dae.T=T; dae.t0=t0; dae.N=N; dae.t=t0+(0:N)*h;
+    dae.mode=mode;
+    dae.q=qfun; dae.f=ffun; dae.b=bfun;
+    dae.Cx=Cxfun; dae.G=Gfun; dae.Sq=Sqfun; dae.Sf=Sffun;
+    dae.initialEvaluation=struct('q',q0,'f',f0,'b',b0, ...
+        'Cx',Cx0,'G',G0,'Sq',Sq0,'Sf',Sf0);
+    fprintf('Section 1 validated: mode=%s, n=%d, np=%d, N=%d, derivative checks=%d.\n', ...
+        mode,n,np,N,checkDerivatives);
+end
+
+% HELPER 1: Read optional settings.
+function value = optionValue(options,name,defaultValue)
+    if isfield(options,name)
+        value=options.(name);
+    else
+        value=defaultValue;
+    end
+end
+
+% HELPER 2: Confirm required fields are callable functions.
+function checkHandles(model,names)
+    for k=1:numel(names)
+        name=names{k};
+        assert(isfield(model,name),'Missing model field: %s',name);
+        assert(isa(model.(name),'function_handle'), ...
+            '%s must be a function handle.',name);
+    end
+end
+
+% HELPER 3: Check an n-by-1 real column vector.
+function v = checkColumn(v,n,name)
+    assert(isnumeric(v) && isreal(v) && isequal(size(v),[n,1]) ...
+        && all(isfinite(v(:))), ...
+        '%s must return a finite real %d-by-1 numeric column.',name,n);
+    v=double(v);
+end
+
+% HELPER 4: Check an n-by-m real matrix.
+function A = checkMatrix(A,n,m,name)
+    assert(isnumeric(A) && isreal(A) && isequal(size(A),[n,m]) ...
+        && all(isfinite(A(:))), ...
+        '%s must return a finite real %d-by-%d numeric matrix.',name,n,m);
+    A=double(A);
+end
+
+% HELPER 5: Validate a stack of np derivative matrices.
+function checkDerivativeStack(D,n,np,name)
+    assert(isnumeric(D) && isreal(D) && all(isfinite(D(:))) ...
+        && size(D,1)==n && size(D,2)==n && size(D,3)==np, ...
+        '%s must return a finite real %d-by-%d-by-%d array.',name,n,n,np);
+end
+
+% HELPER 6: Convert stamped matrix derivatives into DAE derivatives.
+function S = matrixParameterTerms(D,x,n,np)
+    checkDerivativeStack(D,n,np,'matrix parameter derivatives');
+    S=zeros(n,np);
+    for j=1:np
+        S(:,j)=D(:,:,j)*x;
+    end
+end
+
+% HELPER 7: Numerically compare supplied Jacobians to central differences.
+function verifyJacobian(fun,x,p,t,J,wrt,relativeStep,tolerance,name)
+    if strcmp(wrt,'x')
+        values=x;
+    else
+        values=p;
+    end
+    numerical=zeros(size(J));
+    for j=1:numel(values)
+        delta=relativeStep*max(1e-8,abs(values(j)));
+        plus=values; minus=values;
+        plus(j)=plus(j)+delta;
+        minus(j)=minus(j)-delta;
+        if strcmp(wrt,'x')
+            yPlus=fun(plus,p,t);
+            yMinus=fun(minus,p,t);
+        else
+            yPlus=fun(x,plus,t);
+            yMinus=fun(x,minus,t);
+        end
+        yPlus=checkColumn(yPlus,size(J,1),[name ' plus perturbation']);
+        yMinus=checkColumn(yMinus,size(J,1),[name ' minus perturbation']);
+        numerical(:,j)=(yPlus-yMinus)/(2*delta);
+    end
+    scale=max([1,norm(J,'fro'),norm(numerical,'fro')]);
+    errorValue=norm(J-numerical,'fro')/scale;
+    assert(errorValue<=tolerance, ...
+        '%s failed finite-difference check: error %.3g exceeds %.3g.', ...
+        name,errorValue,tolerance);
+end
 
