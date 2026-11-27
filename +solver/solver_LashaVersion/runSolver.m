@@ -80,6 +80,7 @@ if (path == 2)
         xNext = (G + (C/h))\(BNext + ((C/h)*xCurrent));
         xCurrent = xNext;
     end   
+
 end
 
 
@@ -104,10 +105,17 @@ end
 % M for path 2 and 3
 
 if ((path == 2)||(path == 3))
-    
-    % Derivitive of x nominal
-    dxdt = numaricalDerivitive(x,h,numTimeSteps);
   
+
+    % Derivitive of x nominal
+
+    dxdt = zeros(lnth(1),numTimeSteps);
+
+    for n = 1:numTimeSteps-1
+        dxdt(:,n+1) = ( x(:,n+1) - x(:,n) )/h;
+    end
+
+
     % M
     for m = 1:lnth(2)
         mCurrent = zeros(lnth(1),1); %THIS IS A PLACEHOLDER AND NEEDS TO CHANGE TO A REAL GUESS
